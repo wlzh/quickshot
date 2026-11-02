@@ -39,7 +39,7 @@ import {
 	CAPTURE_TOOL_ORDER,
 	normalizeToolStyle,
 } from "@/editor/presets";
-import { loadTool, loadToolStyle, saveTool, saveToolStyle } from "@/editor/persistence";
+import { loadToolStyle, saveToolStyle } from "@/editor/persistence";
 import { applyStyleToAnnotation, styleFromAnnotation } from "@/editor/styleMapping";
 import { measureTextAnnotation } from "@/editor/textLayout";
 import type {
@@ -49,7 +49,6 @@ import type {
 	TextAnnotation,
 	Tool,
 } from "@/editor/types";
-import { readStoredJson, writeStoredJson } from "@/lib/storage";
 import { t } from "@/lib/i18n";
 import { bindingLabel, commandFor, useKeymap } from "@/lib/keymap";
 import { createFrameObjectUrl } from "@/lib/pngBytes";
@@ -125,7 +124,6 @@ const HANDLE_RADIUS = 4;
 const HIT_TOLERANCE_CSS = 6;
 const MOVE_THRESHOLD_CSS = 3;
 const MAX_ANNOTATION_CANVAS_DIMENSION = 8192;
-const TOOL_KEY = "quickshot.overlay-tool.v1";
 
 const IDLE_STATE: OverlayState = {
 	pointer: null,
@@ -138,15 +136,6 @@ const IDLE_STATE: OverlayState = {
 
 function screenSize() {
 	return { width: window.innerWidth, height: window.innerHeight };
-}
-
-function loadOverlayTool(): Tool {
-	const stored = readStoredJson(TOOL_KEY);
-	return CAPTURE_TOOL_ORDER.includes(stored as Tool) ? (stored as Tool) : "arrow";
-}
-
-function saveOverlayTool(tool: Tool) {
-	writeStoredJson(TOOL_KEY, tool);
 }
 
 function loadImageElement(image: HTMLImageElement, source: string) {
@@ -406,7 +395,7 @@ export function RegionSelector() {
 	}, []);
 
 	// ── Annotation editing ────────────────────────────────────────────────────
-	const [tool, setToolState] = useState<Tool>(loadOverlayTool);
+	const [tool, setToolState] = useState<Tool>("select");
 	const [toolStyle, setToolStyle] = useState<ToolStyle>(loadToolStyle);
 	const [history, setHistory] = useState<History<Annotation[]>>(() => createHistory<Annotation[]>([]));
 	const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -422,7 +411,6 @@ export function RegionSelector() {
 	const [hoverId, setHoverId] = useState<string | null>(null);
 
 	useEffect(() => saveToolStyle(toolStyle), [toolStyle]);
-	useEffect(() => saveOverlayTool(tool), [tool]);
 
 	useEffect(
 		() => () => {
@@ -663,6 +651,7 @@ export function RegionSelector() {
 		setEditing(null);
 		setHoverId(null);
 		setHistory(createHistory<Annotation[]>([]));
+		setToolState("select");
 	}, []);
 
 	const sizeOverlayCanvas = useCallback(() => {
@@ -1464,13 +1453,18 @@ export function RegionSelector() {
 	const hovered = dragging ? null : view.hoverWindow;
 	const labelTarget = dragging ?? hovered;
 	const selection = view.drag?.moved ? null : view.selection;
+	const selectionHandle = view.adjust?.handle ?? (
+		selection && view.pointer ? selectionHandleAt(selection, view.pointer) : null
+	);
 	const cursor = !imageReady
 		? "wait"
 		: view.submitting
 			? "progress"
-			: tool !== "select" && selection
-				? toolCursor(tool)
-				: "crosshair";
+			: selectionHandle && selectionHandle !== "move"
+				? selectionCursor(selectionHandle)
+				: tool !== "select" && selection
+						? toolCursor(tool)
+						: "crosshair";
 	const labelPosition = labelTarget
 		? {
 				left: Math.min(Math.max(6, labelTarget.x + 4), window.innerWidth - 220),

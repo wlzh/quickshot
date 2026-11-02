@@ -88,6 +88,17 @@ describe("adjusting a selection", () => {
 	const rect = { x: 100, y: 100, width: 200, height: 100 };
 	const screen = { width: 1000, height: 600 };
 
+	it.each([
+		[200, 100, "ns-resize"], [200, 200, "ns-resize"],
+		[100, 150, "ew-resize"], [300, 150, "ew-resize"],
+		[100, 100, "nwse-resize"], [300, 200, "nwse-resize"],
+		[300, 100, "nesw-resize"], [100, 200, "nesw-resize"],
+	] as const)("matches the resize cursor to the hit area at %s,%s", (x, y, cursor) => {
+		const handle = selectionHandleAt(rect, { x, y });
+		expect(handle).not.toBeNull();
+		expect(selectionCursor(handle!)).toBe(cursor);
+	});
+
 	it("finds edges, corners and the inside", () => {
 		expect(selectionHandleAt(rect, { x: 200, y: 150 })).toBe("move");
 		expect(selectionHandleAt(rect, { x: 103, y: 96 })).toBe("nw");

@@ -1,6 +1,6 @@
 # 截图浮层工具栏
 
-本文记录 QuickShot 1.3.9 的截图浮层工具栏结构、触发范围和验收边界。实现入口为 `src/components/screenshot/OverlayToolbar.tsx`，选区及窗口点击流程由 `src/components/screenshot/RegionSelector.tsx` 统一管理。
+本文记录 QuickShot 1.3.10 的截图浮层工具栏结构、触发范围和验收边界。实现入口为 `src/components/screenshot/OverlayToolbar.tsx`，选区及窗口点击流程由 `src/components/screenshot/RegionSelector.tsx` 统一管理。
 
 ## 布局
 
@@ -36,3 +36,14 @@
 - 提取文字会打开编辑器并自动开始识别原始选区，识别结果面板可编辑、可重新提取、可复制文字。
 - macOS 和 Windows 显示提取文字；Linux 隐藏该动作，与编辑器现有能力保持一致。
 - 滚动截图不显示提取文字和普通复制按钮，开始滚动保持唯一主操作。
+
+## 工具复位与选区缩放（1.3.10）
+
+- 每次新截图默认使用选择工具（默认快捷键 `V`），浮层与二次编辑主窗口均适用，包括后台窗口复用。上次使用的马赛克、数字、箭头、文字等工具不会带入新截图。
+- 同一张截图内继续使用当前工具；颜色、线宽、打码方式和美化设置继续保留。旧版工具记忆键不再读取或写入，无需用户清空设置。
+- 悬停选区四边显示水平或垂直双向缩放箭头，四角显示相应对角缩放箭头；选择任意标注工具后仍可使用这些边框，拖动期间保持缩放光标。选区内部保留当前工具光标。
+- 光标命中范围与实际拖动命中范围共用 `selectionHandleAt()`，边框内外各 8 CSS 像素均可命中；不新增手形平移行为。
+
+自动化交互回归：`npm run test:capture-interactions`。脚本自动启动独立的 `dev:ui` 配置服务器（端口 5190）和临时无头 Chrome，验证旧工具记忆、连续会话复位、24 组光标、真实鼠标缩放及提交尺寸。macOS 默认使用 `/Applications/Google Chrome.app`，其他环境可通过 `CHROME_PATH` 指定 Chrome；Linux CI 已接入此检查。
+
+该测试使用 `test-fixtures/` 的模拟 IPC 与固定图片，不启动 Electron，不操作 `/Applications/QuickShot.app`，不证明真实系统截图权限或实际磁盘保存已验收。完整版本说明见 [1.3.10](release-1.3.10.md)。

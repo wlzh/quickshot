@@ -27,14 +27,12 @@ import {
 	normalizeStylePresets,
 	loadStitchSettings,
 	loadStyleSettings,
-	loadTool,
 	loadToolStyle,
 	saveInspectorOpen,
 	saveStylePresets,
 	saveDefaultStyle,
 	saveStitchSettings,
 	saveStyleSettings,
-	saveTool,
 	saveToolStyle,
 	type StylePreset,
 } from "@/editor/persistence";
@@ -198,7 +196,7 @@ export function Editor() {
 	const [savedDefault, setSavedDefault] = useState<StyleSettings | null>(loadSavedDefaultStyle);
 	const [stylePresets, setStylePresets] = useState<StylePreset[]>(loadStylePresets);
 	const [toolStyle, setToolStyle] = useState<ToolStyle>(loadToolStyle);
-	const [tool, setToolState] = useState<Tool>(loadTool);
+	const [tool, setToolState] = useState<Tool>("select");
 	const keymap = useKeymap();
 	const [inspectorOpen, setInspectorOpen] = useState(loadInspectorOpen);
 	const [history, setHistory] = useState<History<EditorDoc>>(() => createHistory(createDoc()));
@@ -268,7 +266,7 @@ export function Editor() {
 				setSettings(loadStyleSettings());
 				setSavedDefault(loadSavedDefaultStyle());
 				setToolStyle(loadToolStyle());
-				setToolState(loadTool());
+				setToolState("select");
 				setInspectorOpen(loadInspectorOpen());
 				setOcrOpen(payload.openOcr === true);
 				const scaleFactor = Number(payload.scaleFactor);
@@ -332,7 +330,6 @@ export function Editor() {
 	// ── Preferences ───────────────────────────────────────────────────────────
 	useEffect(() => saveStyleSettings(settings), [settings]);
 	useEffect(() => saveToolStyle(toolStyle), [toolStyle]);
-	useEffect(() => saveTool(tool), [tool]);
 	useEffect(() => saveInspectorOpen(inspectorOpen), [inspectorOpen]);
 
 	useEffect(

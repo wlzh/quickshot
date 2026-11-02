@@ -4,16 +4,14 @@ import {
 	type StyleSettings,
 	normalizeStyleSettings,
 } from "./composition";
-import { type ToolStyle, TOOL_ORDER, normalizeToolStyle } from "./presets";
+import { type ToolStyle, normalizeToolStyle } from "./presets";
 import { type StitchSettings, normalizeStitchSettings } from "./stitch";
-import type { Tool } from "./types";
 
 const STYLE_KEY = "quickshot.style.v2";
 const DEFAULT_STYLE_KEY = "quickshot.style-default.v1";
 const STYLE_PRESETS_KEY = "quickshot.style-presets.v1";
 const STITCH_KEY = "quickshot.stitch.v1";
 const TOOL_STYLE_KEY = "quickshot.tool-style.v1";
-const TOOL_KEY = "quickshot.tool.v1";
 const INSPECTOR_KEY = "quickshot.inspector-open.v1";
 
 export type StylePreset = {
@@ -108,15 +106,6 @@ export function loadToolStyle(): ToolStyle {
 
 export function saveToolStyle(style: ToolStyle) {
 	writeStoredJson(TOOL_STYLE_KEY, style);
-}
-
-export function loadTool(): Tool {
-	const stored = readStoredJson(TOOL_KEY);
-	return TOOL_ORDER.includes(stored as Tool) ? (stored as Tool) : "arrow";
-}
-
-export function saveTool(tool: Tool) {
-	writeStoredJson(TOOL_KEY, tool);
 }
 
 export function loadInspectorOpen(): boolean {
