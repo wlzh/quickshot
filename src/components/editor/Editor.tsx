@@ -259,6 +259,10 @@ export function Editor() {
 				if (cancelled) return;
 				sourceBlobRef.current = blob;
 				sourceImageRef.current = decoded;
+				editingRef.current = null;
+				setEditing(null);
+				setSelectedId(null);
+				stageRef.current?.stopPanning();
 				setCropActive(false);
 				setCropDraft(null);
 				// A warm window may have loaded long before this capture; pick up

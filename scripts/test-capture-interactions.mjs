@@ -20,11 +20,14 @@ let id = 0;
 const pending = new Map();
 const errors = [];
 let serverReady = false;
+let serverOutput = "";
 server.on("error", (error) => errors.push(error));
 chrome.on("error", (error) => errors.push(error));
 server.stderr.on("data", (chunk) => errors.push(String(chunk)));
 server.stdout.on("data", (chunk) => {
-	if (String(chunk).includes(base)) serverReady = true;
+	// CI forces ANSI colour codes inside Vite's printed URL; chunks can split it.
+	serverOutput += String(chunk);
+	if (serverOutput.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "").includes(base)) serverReady = true;
 });
 
 async function until(check, label) {
@@ -33,7 +36,7 @@ async function until(check, label) {
 		try { if (await check()) return; } catch { /* Wait for startup or rendering. */ }
 		await delay(60);
 	}
-	throw new Error(`Timed out: ${label}\n${errors.join("\n")}`);
+	throw new Error(`Timed out: ${label}\n${serverOutput}\n${errors.join("\n")}`);
 }
 
 function send(method, params = {}) {
@@ -160,8 +163,21 @@ try {
 		await until(() => evaluate(`window.__quickshotPreviewFixture.readySessionId === ${sessionId}`), "warm editor session");
 		assert.equal(await editorTool(), selectLabel, "warm editor resets to selection");
 	}
+	await key("t");
+	const center = await evaluate(`(() => {
+		const rect = document.querySelector('[data-quickshot-composition]').getBoundingClientRect();
+		return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+	})()`);
+	await mouse("mousePressed", center.x, center.y, true);
+	await mouse("mouseReleased", center.x, center.y);
+	await until(() => evaluate("Boolean(document.querySelector('textarea'))"), "text editing");
+	await send("Input.insertText", { text: "Previous capture draft" });
+	await evaluate("window.__quickshotPreviewFixture.startSession(4)");
+	await until(() => evaluate("window.__quickshotPreviewFixture.readySessionId === 4"), "editor session after text draft");
+	assert.equal(await editorTool(), selectLabel, "text tool also resets");
+	assert.equal(await evaluate("Boolean(document.querySelector('textarea'))"), false, "old text draft is discarded");
 	assert.deepEqual(await evaluate("[localStorage.getItem('quickshot.tool.v1'), localStorage.getItem('quickshot.overlay-tool.v1')].map(JSON.parse)"), ["counter", "redact"], "active tools no longer write preferences");
-	console.log("PASS editor: stored/warm tool reset; legacy keys ignored and untouched");
+	console.log("PASS editor: stored/warm tool reset, text draft cleanup; legacy keys ignored and untouched");
 } finally {
 	socket?.close();
 	for (const request of pending.values()) clearTimeout(request.timer);
