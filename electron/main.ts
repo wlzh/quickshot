@@ -3764,7 +3764,7 @@ async function finishScrollCapture(reason: string, action: "edit" | "copy" = "ed
 		if (scrollSession !== session) return;
 		if (action === "copy") {
 			const native = nativeImage.createFromBuffer(image);
-			if (native.isEmpty()) throw new Error("Invalid PNG");
+			if (native.isEmpty()) throw new Error("Empty PNG");
 			clipboard.writeImage(native);
 		}
 		endScrollSession(session);
@@ -4561,7 +4561,7 @@ function registerIpcHandlers() {
 	ipcMain.handle("finish-scroll-capture", (event, action: unknown) => {
 		const session = scrollSession;
 		if (
-			!session || session.finishing || !isTrustedWindowSender(event, session.panel) ||
+			!session || !isTrustedWindowSender(event, session.panel) ||
 			(action !== "edit" && action !== "copy")
 		) return { success: false };
 		void finishScrollCapture("panel", action);
