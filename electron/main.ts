@@ -3738,9 +3738,9 @@ function handleScrollAgentEvent(event: AgentEvent) {
 }
 
 /** Says so in the panel for a moment, then ends the capture. */
-function failScrollCapture(session: ScrollSession, reason: string) {
+function failScrollCapture(session: ScrollSession, reason: string, error?: string) {
 	if (scrollSession !== session || session.progress.status === "error") return;
-	writeDiagnostic("scroll-capture-failed", { reason });
+	writeDiagnostic("scroll-capture-failed", { reason, error });
 	session.finishing = true;
 	session.progress = { ...session.progress, status: "error" };
 	sendScrollProgress(session, false);
@@ -3757,53 +3757,28 @@ async function finishScrollCapture(reason: string, action: "edit" | "copy" = "ed
 	sendScrollProgress(session, false);
 	const fs = await import("node:fs/promises");
 	const filePath = temporaryCapturePath("quickshot-scroll", "png");
-	let image: Buffer | null = null;
-	let stats: unknown;
 	try {
 		const response = await scrollAgent.request({ cmd: "scroll-finish", path: filePath }, SCROLL_FINISH_TIMEOUT_MS);
-		stats = response?.stats;
-		if (response?.ok) {
-			image = acceptCapturedPng(await fs.readFile(filePath));
-		} else {
-			writeDiagnostic("scroll-capture-finish-failed", { error: response?.error ?? "no response" });
+		if (!response?.ok) throw new Error(response?.error ?? "no response");
+		const image = acceptCapturedPng(await fs.readFile(filePath));
+		if (scrollSession !== session) return;
+		if (action === "copy") {
+			const native = nativeImage.createFromBuffer(image);
+			if (native.isEmpty()) throw new Error("Invalid PNG");
+			clipboard.writeImage(native);
 		}
+		endScrollSession(session);
+		writeDiagnostic("scroll-capture-finished", {
+			reason, action, ...readPngDimensions(image), ms: Date.now() - session.startedAt,
+			stats: response.stats,
+		});
+		if (action === "copy") cancelActiveCapture(false, false);
+		else if (!deliverStitchPiece(image) && !openPreviewForImage(image)) cancelActiveCapture();
 	} catch (error) {
-		writeDiagnostic("scroll-capture-finish-failed", { error: serializeError(error) });
+		failScrollCapture(session, "finish-failed", serializeError(error));
 	} finally {
 		await fs.unlink(filePath).catch(() => {});
 	}
-	if (scrollSession !== session) return;
-	if (!image) {
-		session.finishing = false;
-		failScrollCapture(session, "finish-failed");
-		return;
-	}
-	if (action === "copy") {
-		try {
-			const stitchedImage = nativeImage.createFromBuffer(image);
-			if (stitchedImage.isEmpty()) throw new Error("Invalid stitched image");
-			clipboard.writeImage(stitchedImage);
-		} catch (error) {
-			writeDiagnostic("scroll-capture-copy-failed", { error: serializeError(error) });
-			failScrollCapture(session, "copy-failed");
-			return;
-		}
-	}
-	endScrollSession(session);
-	writeDiagnostic("scroll-capture-finished", {
-		reason,
-		action,
-		...readPngDimensions(image),
-		ms: Date.now() - session.startedAt,
-		// How the stitching went, in numbers only: frames, losses and why.
-		stats,
-	});
-	if (action === "copy") {
-		cancelActiveCapture(false, false);
-		return;
-	}
-	if (deliverStitchPiece(image)) return;
-	if (!openPreviewForImage(image)) cancelActiveCapture();
 }
 
 function cancelScrollCapture(reason: string) {
