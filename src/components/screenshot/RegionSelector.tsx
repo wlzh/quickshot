@@ -1006,7 +1006,9 @@ export function RegionSelector() {
 				commandFor(keymapRef.current, event, "overlay") === "overlay.scroll"
 			) {
 				event.preventDefault();
-				setScrollMode(!scrollModeRef.current);
+				const enabled = !scrollModeRef.current;
+				setScrollMode(enabled);
+				if (enabled && !state.adjust && !state.drag) confirmSelection();
 			}
 		};
 		window.addEventListener("keydown", handleKeyDown);
@@ -1339,9 +1341,11 @@ export function RegionSelector() {
 		if (!drag || state.submitting) return;
 		state.drag = null;
 		if (drag.moved) {
-			// The area stays selected, to adjust and annotate before it is captured.
 			const rect = dragRect(drag);
-			if (rect.width >= MIN_SELECTION && rect.height >= MIN_SELECTION) state.selection = rect;
+			if (rect.width >= MIN_SELECTION && rect.height >= MIN_SELECTION) {
+				state.selection = rect;
+				if (scrollModeRef.current) void submit(rect, null);
+			}
 			scheduleRender();
 			return;
 		}

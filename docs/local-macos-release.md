@@ -29,7 +29,7 @@
 
 早期安装在 `~/Applications/QuickShot.app` 的副本，会在下次运行安装脚本时移到 `app-backups.noindex/legacy-home-*` 并取消注册，避免两份应用争用单实例锁和录屏授权。
 
-自动化截图入口：`open -n "/Applications/QuickShot.app" --args --capture-region`。这会调用正常的系统选区流程；按 Esc 取消。`--capture-scroll` 直接进入滚动截图（macOS 14 起），框选后滚动页面，回车完成、Esc 取消。`--settings` 打开设置窗口（快捷键、语言、选区方式、登录时启动）。
+自动化截图入口：`open -n "/Applications/QuickShot.app" --args --capture-region`。这会调用正常的系统选区流程；按 Esc 取消。`--capture-scroll` 进入滚动截图选区（macOS 14 起），拖选松手即开始采集。滚完页面后，点「复制」直接复制完整长图并关闭浮窗，或点「进入主窗口」（回车）继续编辑；点「取消」或按 Esc 可放弃本次采集。`--settings` 打开设置窗口（快捷键、语言、选区方式、登录时启动）。
 
 本机签名以打包时实际可用的身份为准。ad-hoc 签名的 designated requirement 绑定构建哈希，每次构建都会变化，系统会把新包当作另一个应用而要求重新授权。因此本机使用登录钥匙串中的自签名代码签名证书 `QuickShot Local Signing`（2026-10-09 创建并完成迁移），签名脚本显式指定 `identifier "com.quickshot.app" and certificate leaf = …`，跨构建保持不变；日常更新直接运行 `npm run install:mac:local`，签名兼容性校验通过后原位替换。
 
