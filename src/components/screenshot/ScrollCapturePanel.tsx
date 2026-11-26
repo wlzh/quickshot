@@ -165,7 +165,7 @@ export function ScrollCapturePanel() {
 						onClick={() => void window.electronAPI.scrollCapture?.copy()}
 						className="flex h-[34px] flex-1 items-center justify-center rounded-[10px] bg-white/10 text-[12.5px] font-medium text-white/85 transition-colors hover:bg-white/15 disabled:opacity-40"
 					>
-						{t("scroll.copy")}
+						{t("action.copy")}
 					</button>
 					<button
 						type="button"
